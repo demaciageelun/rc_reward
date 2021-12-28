@@ -68,15 +68,20 @@ class Emp(models.Model):
 class Record(models.Model):
     rc = models.ForeignKey('Emp', models.DO_NOTHING, verbose_name="推荐人", related_name='rc')
     rc_b = models.ForeignKey('Emp', models.DO_NOTHING, verbose_name="被推荐人", related_name='rc_b')
+    rc_cdate = models.DateField(blank=True, null=True, verbose_name="创建日期")
     p = models.ForeignKey('Reward', models.DO_NOTHING, verbose_name="奖金类型")
-    rc_fdate = models.DateField(blank=True, null=True, verbose_name="发放日期1")
-    rc_fmoney = models.FloatField(blank=True, null=True, verbose_name="发放金额1")
-    rc_sdate = models.DateField(blank=True, null=True, verbose_name="发放日期2")
-    rc_smoney = models.FloatField(blank=True, null=True, verbose_name="发放金额2")
-    rc_tdate = models.DateField(blank=True, null=True, verbose_name="发放日期3")
-    rc_tmoney = models.FloatField(blank=True, null=True, verbose_name="发放金额3")
-    rc_4date = models.DateField(blank=True, null=True, verbose_name="发放日期4")
-    rc_4money = models.FloatField(blank=True, null=True, verbose_name="发放金额4")
+    rc_fdate = models.DateField(blank=True, null=True, verbose_name="日期1")
+    rc_fmoney = models.FloatField(blank=True, null=True, verbose_name="金额1")
+    rc_sdate = models.DateField(blank=True, null=True, verbose_name="日期2")
+    rc_smoney = models.FloatField(blank=True, null=True, verbose_name="金额2")
+    rc_tdate = models.DateField(blank=True, null=True, verbose_name="日期3")
+    rc_tmoney = models.FloatField(blank=True, null=True, verbose_name="金额3")
+    rc_4date = models.DateField(blank=True, null=True, verbose_name="日期4")
+    rc_4money = models.FloatField(blank=True, null=True, verbose_name="金额4")
+    rc_bfmoney = models.FloatField(blank=True, null=True, verbose_name="被推荐人金额1")
+    rc_bsmoney = models.FloatField(blank=True, null=True, verbose_name="被推荐人金额2")
+    rc_btmoney = models.FloatField(blank=True, null=True, verbose_name="被推荐人金额3")
+    rc_b4money = models.FloatField(blank=True, null=True, verbose_name="被推荐人金额4")
 
     def pp(self):
         if len(str(self.p)) > 10:

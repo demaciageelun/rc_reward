@@ -1,5 +1,8 @@
 from django.contrib import admin
 from .models import Position, Dept, Emp, Record, Reward
+from openpyxl import Workbook
+from django.http import HttpResponse, FileResponse
+import datetime
 
 
 # Register your models here.
@@ -22,11 +25,28 @@ class EmpAdmin(admin.ModelAdmin):
 
 
 class RecordAdmin(admin.ModelAdmin):
-    list_display = ['rc', 'rc_b', 'pp', 'dept',
-                    'leavedate', 'rc_fdate', 'rc_fmoney', 'rc_sdate', 'rc_smoney', 'rc_tdate',
-                    'rc_tmoney', 'rc_4date', 'rc_4money']
+    list_display = ['rc', 'rc_b', 'pp', 'dept', 'rc_cdate',
+                    'leavedate', 'rc_fdate', 'rc_fmoney', 'rc_bfmoney', 'rc_sdate', 'rc_smoney', 'rc_bsmoney',
+                    'rc_tdate',
+                    'rc_tmoney', 'rc_btmoney', 'rc_4date', 'rc_4money', 'rc_b4money']
     list_filter = ['rc__emp_name', 'p', 'rc_b__emp_is_work']
     raw_id_fields = ['rc', 'rc_b']
+    # 添加按钮
+    actions = ['custom_button']
+
+    def custom_button(self, request, queryset):
+        pass
+
+    # 显示的文本，与django admin一致
+    custom_button.short_description = '导出数据'
+    # icon，参考element-ui icon与https://fontawesome.com
+    # custom_button.icon = 'fas fa-audio-description'
+
+    # 指定element-ui的按钮类型，参考https://element.eleme.cn/#/zh-CN/component/button
+    custom_button.type = 'primary'
+
+    # 给按钮追加自定义的颜色
+    # custom_button.style = 'color:black;'
 
     def dept(self, obj):
         return obj.rc_b.dept
@@ -65,9 +85,12 @@ class RecordAdmin(admin.ModelAdmin):
                                                     rc_4date=obj.rc_4date,
                                                     rc_4money=obj.rc_4money)
         else:
+            # 是none，表示新增。新增的时候自动计算发奖金日期。
+            # 根据今天日期，计算后续日期
             Record.objects.create(rc=obj.rc,
                                   rc_b=obj.rc_b,
                                   p=obj.p,
+                                  rc_cdate=obj.rc_cdate,
                                   rc_fdate=obj.rc_fdate,
                                   rc_fmoney=obj.rc_fmoney,
                                   rc_sdate=obj.rc_sdate,

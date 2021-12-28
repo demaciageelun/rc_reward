@@ -121,5 +121,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
 STATIC_URL = '/static/'
+# SIMPLEUI_LOGO = 'index.png'
 SIMPLEUI_HOME_INFO = False
 SIMPLEUI_ANALYSIS = False
