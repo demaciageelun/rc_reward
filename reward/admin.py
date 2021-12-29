@@ -8,10 +8,18 @@ import datetime
 # Register your models here.
 class PositionAdmin(admin.ModelAdmin):
     list_display = ['p_name']
+    list_filter = ['p_name']
+
+    def has_delete_permission(self, request, obj=None):
+        if str(request.user) != 'saduck':
+            return False
+        else:
+            return True
 
 
 class DeptAdmin(admin.ModelAdmin):
     list_display = ['dept_name']
+    list_filter = ['dept_name']
 
     def has_delete_permission(self, request, obj=None):
         if str(request.user) != 'saduck':
@@ -22,6 +30,7 @@ class DeptAdmin(admin.ModelAdmin):
 
 class EmpAdmin(admin.ModelAdmin):
     list_display = ['emp_name', 'dept', 'p', 'emp_in_date', 'emp_out_date', 'emp_is_work', 'emp_rank', 'emp_base']
+    raw_id_fields = ['dept', 'p']
 
 
 class RecordAdmin(admin.ModelAdmin):
@@ -32,21 +41,7 @@ class RecordAdmin(admin.ModelAdmin):
     list_filter = ['rc__emp_name', 'p', 'rc_b__emp_is_work']
     raw_id_fields = ['rc', 'rc_b']
     # 添加按钮
-    actions = ['custom_button']
-
-    def custom_button(self, request, queryset):
-        pass
-
-    # 显示的文本，与django admin一致
-    custom_button.short_description = '导出数据'
-    # icon，参考element-ui icon与https://fontawesome.com
-    # custom_button.icon = 'fas fa-audio-description'
-
-    # 指定element-ui的按钮类型，参考https://element.eleme.cn/#/zh-CN/component/button
-    custom_button.type = 'primary'
-
-    # 给按钮追加自定义的颜色
-    # custom_button.style = 'color:black;'
+    actions = ['download']
 
     def dept(self, obj):
         return obj.rc_b.dept
@@ -57,6 +52,54 @@ class RecordAdmin(admin.ModelAdmin):
         return obj.rc_b.emp_out_date
 
     leavedate.short_description = "离职日期"
+
+    def download(self, request, queryset):
+        wb = Workbook()
+        ws = wb.active
+        row1 = ['推荐人', '被推荐人', '奖励政策', '部门', '创建日期', '离职日期', '第一次奖励日期', '第一次奖励金额', '被推荐人第一次奖励金额', '第二次奖励日期', '第二次奖励金额',
+                '被推荐人第二次奖励金额', '第三次奖励日期', '第三次奖励金额', '被推荐人第三次奖励金额', '第四次奖励日期', '第四次奖励金额', '被推荐人第四次奖励金额']
+        ws.append(row1)
+        for datas in queryset:
+            print(type(datas.pp))
+            row2 = [
+                str(datas.rc) if str(datas.rc) != "None" else "",
+                str(datas.rc_b) if str(datas.rc_b) != "None" else "",
+                str(datas.p) if str(datas.p) != "None" else "",
+                str(datas.rc_b.dept) if str(datas.rc_b.dept) != "None" else "",
+                str(datas.rc_cdate) if str(datas.rc_cdate) != "None" else "",
+                str(datas.rc_b.emp_out_date) if str(datas.rc_b.emp_out_date) != "None" else "",
+                str(datas.rc_fdate) if str(datas.rc_fdate) != "None" else "",
+                str(datas.rc_fmoney) if str(datas.rc_fmoney) != "None" else "",
+                str(datas.rc_bfmoney) if str(datas.rc_bfmoney) != "None" else "",
+                str(datas.rc_sdate) if str(datas.rc_sdate) != "None" else "",
+                str(datas.rc_smoney) if str(datas.rc_smoney) != "None" else "",
+                str(datas.rc_bsmoney) if str(datas.rc_bsmoney) != "None" else "",
+                str(datas.rc_tdate) if str(datas.rc_tdate) != "None" else "",
+                str(datas.rc_tmoney) if str(datas.rc_tmoney) != "None" else "",
+                str(datas.rc_btmoney) if str(datas.rc_btmoney) != "None" else "",
+                str(datas.rc_4date) if str(datas.rc_4date) != "None" else "",
+                str(datas.rc_4money) if str(datas.rc_4money) != "None" else "",
+                str(datas.rc_b4money) if str(datas.rc_b4money) != "None" else ""
+            ]
+            ws.append(row2)
+        wb.save('static/data.xlsx')
+        #     下载
+        file = open('static/data.xlsx', 'rb')
+        response = FileResponse(file)
+        response['Content-Type'] = 'application/octet-stream'
+        response['Content-Disposition'] = 'attachment;filename="record.xlsx"'
+        return response
+
+    # 显示的文本，与django admin一致
+    download.short_description = '导出数据'
+    # icon，参考element-ui icon与https://fontawesome.com
+    # custom_button.icon = 'fas fa-audio-description'
+
+    # 指定element-ui的按钮类型，参考https://element.eleme.cn/#/zh-CN/component/button
+    download.type = 'primary'
+
+    # 给按钮追加自定义的颜色
+    # custom_button.style = 'color:black;'
 
     '''
     重写保存按钮
@@ -72,7 +115,7 @@ class RecordAdmin(admin.ModelAdmin):
         :param change:暂时不知道有什么用
         :return:
         '''
-        if obj.id is not None:
+        if obj.id != "None":
             Record.objects.filter(id=obj.id).update(rc=obj.rc.emp_id,
                                                     rc_b=obj.rc_b.emp_id,
                                                     p=obj.p.id,
@@ -83,7 +126,12 @@ class RecordAdmin(admin.ModelAdmin):
                                                     rc_tdate=obj.rc_tdate,
                                                     rc_tmoney=obj.rc_tmoney,
                                                     rc_4date=obj.rc_4date,
-                                                    rc_4money=obj.rc_4money)
+                                                    rc_4money=obj.rc_4money,
+                                                    rc_bfmoney=obj.rc_bfmoney,
+                                                    rc_bsmoney=obj.rc_bsmoney,
+                                                    rc_btmoney=obj.rc_btmoney,
+                                                    rc_b4money=obj.rc_b4money
+                                                    )
         else:
             # 是none，表示新增。新增的时候自动计算发奖金日期。
             # 根据今天日期，计算后续日期
@@ -98,7 +146,12 @@ class RecordAdmin(admin.ModelAdmin):
                                   rc_tdate=obj.rc_tdate,
                                   rc_tmoney=obj.rc_tmoney,
                                   rc_4date=obj.rc_4date,
-                                  rc_4money=obj.rc_4money)
+                                  rc_4money=obj.rc_4money,
+                                  rc_bfmoney=obj.rc_bfmoney,
+                                  rc_bsmoney=obj.rc_bsmoney,
+                                  rc_btmoney=obj.rc_btmoney,
+                                  rc_b4money=obj.rc_b4money
+                                  )
 
 
 class RewardAdmin(admin.ModelAdmin):
