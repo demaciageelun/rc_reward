@@ -124,3 +124,8 @@ STATIC_URL = '/static/'
 # SIMPLEUI_LOGO = 'index.png'
 SIMPLEUI_HOME_INFO = False
 SIMPLEUI_ANALYSIS = False
+USE_L10N = False
+
+DATETIME_FORMAT = 'Y/m/d H:i:s'
+
+DATE_FORMAT = 'Y/m/d'

@@ -4,6 +4,7 @@ from django.db import models
 # Create your models here.
 # 岗位表
 class Position(models.Model):
+    p_id = models.CharField(max_length=255, blank=True, null=True, verbose_name='岗位id')
     p_name = models.CharField(max_length=255, blank=True, null=True, verbose_name='岗位名称')
 
     # re = models.ForeignKey('Reward', models.DO_NOTHING, verbose_name="奖金信息")
@@ -19,6 +20,7 @@ class Position(models.Model):
 
 # 部门表
 class Dept(models.Model):
+    dept_id = models.CharField(blank=True, null=True, max_length=255, verbose_name='部门id')
     dept_name = models.CharField(max_length=255, blank=True, null=True, verbose_name='部门名称')
 
     def __str__(self):
@@ -35,20 +37,25 @@ is_work_choice = (
     (2, '离职'),
 )
 base_choice = (
-    (1, '润阳新能源'),
-    (2, '润阳悦达'),
-    (3, '建湖润阳'),
+    (1, '建湖基地'),
+    (2, '宁夏润阳'),
+    (3, '润宝电力'),
     (4, '润阳世纪'),
-    (5, '泰国润阳'),
+    (5, '润阳泰国'),
+    (6, '润阳新能源'),
+    (7, '泰国一厂'),
+    (8, '盐城基地'),
+    (9, '总部')
 )
 
 
 # 员工表
 class Emp(models.Model):
-    emp_id = models.IntegerField(primary_key=True, verbose_name='员工工号')
+    emp_id = models.CharField(primary_key=True, max_length=255, verbose_name='员工工号')
     emp_name = models.CharField(max_length=255, blank=True, null=True, verbose_name='员工姓名')
     dept = models.ForeignKey('Dept', models.DO_NOTHING, verbose_name="部门")
     p = models.ForeignKey('Position', models.DO_NOTHING, verbose_name="岗位")
+    r = models.ForeignKey('Reward', models.DO_NOTHING, blank=True, null=True, verbose_name="被推荐人奖励政策")
     emp_in_date = models.DateField(blank=True, null=True, verbose_name="入职日期")
     emp_out_date = models.DateField(blank=True, null=True, verbose_name="离职日期")
     emp_is_work = models.IntegerField(blank=True, null=True, verbose_name='是否在职', choices=is_work_choice)
@@ -69,7 +76,7 @@ class Record(models.Model):
     rc = models.ForeignKey('Emp', models.DO_NOTHING, verbose_name="推荐人", related_name='rc')
     rc_b = models.ForeignKey('Emp', models.DO_NOTHING, verbose_name="被推荐人", related_name='rc_b')
     rc_cdate = models.DateField(blank=True, null=True, verbose_name="创建日期")
-    p = models.ForeignKey('Reward', models.DO_NOTHING, verbose_name="奖金类型")
+    # p = models.ForeignKey('Reward', models.DO_NOTHING, verbose_name="奖金类型")
     rc_fdate = models.DateField(blank=True, null=True, verbose_name="日期1")
     rc_fmoney = models.FloatField(blank=True, null=True, verbose_name="金额1")
     rc_sdate = models.DateField(blank=True, null=True, verbose_name="日期2")
@@ -83,14 +90,14 @@ class Record(models.Model):
     rc_btmoney = models.FloatField(blank=True, null=True, verbose_name="被推荐人金额3")
     rc_b4money = models.FloatField(blank=True, null=True, verbose_name="被推荐人金额4")
 
-    def pp(self):
-        if len(str(self.p)) > 10:
-            return '{}···'.format(str(self.p)[0:10])
-        else:
-            return str(self.p)
-
-    pp.allow_tags = True
-    pp.short_description = "奖金类型"
+    # def pp(self):
+    #     if len(str(self.p)) > 10:
+    #         return '{}···'.format(str(self.p)[0:10])
+    #     else:
+    #         return str(self.p)
+    #
+    # pp.allow_tags = True
+    # pp.short_description = "奖金类型"
 
     class Meta:
         managed = False
@@ -102,7 +109,6 @@ class Record(models.Model):
 class Reward(models.Model):
     re_bdate = models.DateField(blank=True, null=True, verbose_name="生效日期")
     re_edate = models.DateField(blank=True, null=True, verbose_name="失效日期")
-    p = models.ForeignKey('Position', models.DO_NOTHING, verbose_name="岗位信息")
     re_money = models.FloatField(blank=True, null=True, verbose_name="推荐人奖金金额")
     re_bmoney = models.FloatField(blank=True, null=True, verbose_name="被推荐人奖金金额")
     re_times = models.IntegerField(blank=True, null=True, verbose_name='分期发放次数')
@@ -113,7 +119,7 @@ class Reward(models.Model):
             bmoney = "0"
         else:
             bmoney = self.re_bmoney
-        return str(self.p.p_name) + "," + str(self.re_bdate) + "到" + str(self.re_edate) + ",分" + str(
+        return str(self.re_bdate) + "到" + str(self.re_edate) + ",分" + str(
             self.re_times) + "期发，推荐人奖金为" + str(
             self.re_money) + ",被推荐人奖金为" + str(bmoney)
 

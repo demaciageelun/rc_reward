@@ -1,14 +1,18 @@
 from django.contrib import admin
+from django.forms import TextInput, Textarea
+from django.utils.html import format_html
+
 from .models import Position, Dept, Emp, Record, Reward
 from openpyxl import Workbook
 from django.http import HttpResponse, FileResponse
 import datetime
+from django.db import models
 
 
 # Register your models here.
 class PositionAdmin(admin.ModelAdmin):
-    list_display = ['p_name']
-    list_filter = ['p_name']
+    list_display = ['p_id', 'p_name']
+    list_filter = ['p_id', 'p_name']
 
     def has_delete_permission(self, request, obj=None):
         if str(request.user) != 'saduck':
@@ -16,10 +20,24 @@ class PositionAdmin(admin.ModelAdmin):
         else:
             return True
 
+    # actions = ['updatePosition']
+    #
+    # def updatePosition(self, request, queryset):
+    #     print(request)
+    #
+    # # 显示的文本，与django admin一致
+    # updatePosition.short_description = '更新数据'
+    # # icon，参考element-ui icon与https://fontawesome.com
+    # # custom_button.icon = 'fas fa-audio-description'
+    #
+    # # 指定element-ui的按钮类型，参考https://element.eleme.cn/#/zh-CN/component/button
+    # updatePosition.type = 'primary'
+    # updatePosition.acts_on_all = True
+
 
 class DeptAdmin(admin.ModelAdmin):
-    list_display = ['dept_name']
-    list_filter = ['dept_name']
+    list_display = ['dept_id', 'dept_name']
+    list_filter = ['dept_id', 'dept_name']
 
     def has_delete_permission(self, request, obj=None):
         if str(request.user) != 'saduck':
@@ -29,21 +47,36 @@ class DeptAdmin(admin.ModelAdmin):
 
 
 class EmpAdmin(admin.ModelAdmin):
-    list_display = ['emp_name', 'dept', 'p', 'emp_in_date', 'emp_out_date', 'emp_is_work', 'emp_rank', 'emp_base']
+    list_display = ['emp_id', 'emp_name', 'dept', 'p', 'emp_in_date', 'emp_out_date', 'emp_is_work', 'emp_rank',
+                    'emp_base']
     raw_id_fields = ['dept', 'p']
+    list_filter = ['emp_id', 'emp_name', 'dept', 'p']
+    list_per_page = 10
 
 
 class RecordAdmin(admin.ModelAdmin):
-    list_display = ['rc', 'rc_b', 'pp', 'dept', 'rc_cdate',
-                    'leavedate', 'rc_fdate', 'rc_fmoney', 'rc_bfmoney', 'rc_sdate', 'rc_smoney', 'rc_bsmoney',
+    # formfield_overrides = {
+    #     models.CharField: {'widget': TextInput(attrs={'size': '30'})},
+    #     models.DateField: {'widget': Textarea(attrs={'rows': 4, 'cols': 40})},
+    # }
+
+    list_display = ['rc', 'rc_b', 'dept', 'rc_cdates',
+                    'leavedate', 'reward', 'rc_fdate', 'rc_fmoney', 'rc_bfmoney', 'rc_sdate', 'rc_smoney', 'rc_bsmoney',
                     'rc_tdate',
                     'rc_tmoney', 'rc_btmoney', 'rc_4date', 'rc_4money', 'rc_b4money']
-    list_filter = ['rc__emp_name', 'p', 'rc_b__emp_is_work']
+    list_filter = ['rc__emp_name', 'rc_b__emp_is_work']
     raw_id_fields = ['rc', 'rc_b']
     # 添加按钮
     actions = ['download']
 
+    def rc_cdates(self, obj):
+        return obj.rc_cdate
+        # return format_html('<span style="color:blue">{}</span>', obj.rc_cdate)
+
+    rc_cdates.short_description = '创建日期'
+
     def dept(self, obj):
+        # return format_html('<span style="width:5px">{}</span>', obj.rc_b.dept)
         return obj.rc_b.dept
 
     dept.short_description = "被推荐人部门"
@@ -53,20 +86,26 @@ class RecordAdmin(admin.ModelAdmin):
 
     leavedate.short_description = "离职日期"
 
+    def reward(self, obj):
+        return obj.rc_b.r
+
+    reward.short_description = "被推荐人奖励政策"
+
     def download(self, request, queryset):
         wb = Workbook()
         ws = wb.active
-        row1 = ['推荐人', '被推荐人', '奖励政策', '部门', '创建日期', '离职日期', '第一次奖励日期', '第一次奖励金额', '被推荐人第一次奖励金额', '第二次奖励日期', '第二次奖励金额',
+        row1 = ['推荐人', '被推荐人', '奖励政策', '被推荐人部门', '创建日期', '入职日期', '离职日期', '第一次奖励日期', '第一次奖励金额', '被推荐人第一次奖励金额', '第二次奖励日期',
+                '第二次奖励金额',
                 '被推荐人第二次奖励金额', '第三次奖励日期', '第三次奖励金额', '被推荐人第三次奖励金额', '第四次奖励日期', '第四次奖励金额', '被推荐人第四次奖励金额']
         ws.append(row1)
         for datas in queryset:
-            print(type(datas.pp))
             row2 = [
                 str(datas.rc) if str(datas.rc) != "None" else "",
                 str(datas.rc_b) if str(datas.rc_b) != "None" else "",
-                str(datas.p) if str(datas.p) != "None" else "",
+                str(datas.rc_b.r) if str(datas.rc_b.r) != "None" else "",
                 str(datas.rc_b.dept) if str(datas.rc_b.dept) != "None" else "",
                 str(datas.rc_cdate) if str(datas.rc_cdate) != "None" else "",
+                str(datas.rc_b.emp_in_date) if str(datas.rc_b.emp_in_date) != "None" else "",
                 str(datas.rc_b.emp_out_date) if str(datas.rc_b.emp_out_date) != "None" else "",
                 str(datas.rc_fdate) if str(datas.rc_fdate) != "None" else "",
                 str(datas.rc_fmoney) if str(datas.rc_fmoney) != "None" else "",
@@ -115,10 +154,10 @@ class RecordAdmin(admin.ModelAdmin):
         :param change:暂时不知道有什么用
         :return:
         '''
-        if obj.id != "None":
+        print(type(obj.id))
+        if obj.id is not None:
             Record.objects.filter(id=obj.id).update(rc=obj.rc.emp_id,
                                                     rc_b=obj.rc_b.emp_id,
-                                                    p=obj.p.id,
                                                     rc_fdate=obj.rc_fdate,
                                                     rc_fmoney=obj.rc_fmoney,
                                                     rc_sdate=obj.rc_sdate,
@@ -137,7 +176,6 @@ class RecordAdmin(admin.ModelAdmin):
             # 根据今天日期，计算后续日期
             Record.objects.create(rc=obj.rc,
                                   rc_b=obj.rc_b,
-                                  p=obj.p,
                                   rc_cdate=obj.rc_cdate,
                                   rc_fdate=obj.rc_fdate,
                                   rc_fmoney=obj.rc_fmoney,
@@ -155,8 +193,7 @@ class RecordAdmin(admin.ModelAdmin):
 
 
 class RewardAdmin(admin.ModelAdmin):
-    list_display = ['re_bdate', 're_edate', 'p', 're_money', 're_bmoney', 're_times', 're_desc']
-    raw_id_fields = ['p']
+    list_display = ['re_bdate', 're_edate', 're_money', 're_bmoney', 're_times', 're_desc']
 
 
 admin.site.site_header = '润阳人事推荐奖励系统'
