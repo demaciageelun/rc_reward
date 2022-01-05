@@ -1,18 +1,18 @@
 from django.contrib import admin
-from django.forms import TextInput, Textarea
-from django.utils.html import format_html
-
+# from django.forms import TextInput, Textarea
+# from django.utils.html import format_html
 from .models import Position, Dept, Emp, Record, Reward
 from openpyxl import Workbook
-from django.http import HttpResponse, FileResponse
-import datetime
-from django.db import models
+from django.http import FileResponse
+from import_export.admin import ImportExportModelAdmin
 
 
 # Register your models here.
-class PositionAdmin(admin.ModelAdmin):
-    list_display = ['p_id', 'p_name']
-    list_filter = ['p_id', 'p_name']
+class PositionAdmin(ImportExportModelAdmin):
+    list_display = ['p_id',
+                    'p_name']
+    list_filter = ['p_id',
+                   'p_name']
 
     def has_delete_permission(self, request, obj=None):
         if str(request.user) != 'saduck':
@@ -35,9 +35,13 @@ class PositionAdmin(admin.ModelAdmin):
     # updatePosition.acts_on_all = True
 
 
-class DeptAdmin(admin.ModelAdmin):
-    list_display = ['dept_id', 'dept_name']
-    list_filter = ['dept_id', 'dept_name']
+class DeptAdmin(ImportExportModelAdmin):
+    list_display = ['dept_id',
+                    'dept_name',
+                    'dept_base']
+    list_filter = ['dept_id',
+                   'dept_name',
+                   'dept_base']
 
     def has_delete_permission(self, request, obj=None):
         if str(request.user) != 'saduck':
@@ -46,34 +50,72 @@ class DeptAdmin(admin.ModelAdmin):
             return True
 
 
-class EmpAdmin(admin.ModelAdmin):
-    list_display = ['emp_id', 'emp_name', 'dept', 'p', 'emp_in_date', 'emp_out_date', 'emp_is_work', 'emp_rank',
-                    'emp_base']
-    raw_id_fields = ['dept', 'p']
-    list_filter = ['emp_id', 'emp_name', 'dept', 'p']
+class EmpAdmin(ImportExportModelAdmin):
+    list_display = ['emp_id',
+                    'emp_name',
+                    'dept',
+                    'emp_base',
+                    'p',
+                    'emp_in_date',
+                    'emp_out_date',
+                    'emp_is_work',
+                    'emp_rank']
+    raw_id_fields = ['dept',
+                     'p']
+    list_filter = ['emp_id',
+                   'emp_name',
+                   'dept',
+                   'p',
+                   'dept__dept_base',
+                   'emp_is_work']
     list_per_page = 10
 
+    # list_select_related = ['emp_name']
+    # show_full_result_count = False
 
-class RecordAdmin(admin.ModelAdmin):
-    # formfield_overrides = {
-    #     models.CharField: {'widget': TextInput(attrs={'size': '30'})},
-    #     models.DateField: {'widget': Textarea(attrs={'rows': 4, 'cols': 40})},
-    # }
+    def emp_base(self, obj):
+        return obj.dept.dept_base
 
-    list_display = ['rc', 'rc_b', 'dept', 'rc_cdates',
-                    'leavedate', 'reward', 'rc_fdate', 'rc_fmoney', 'rc_bfmoney', 'rc_sdate', 'rc_smoney', 'rc_bsmoney',
+    emp_base.short_description = '所属基地'
+    # list_max_show_all = 10
+
+
+class RecordAdmin(ImportExportModelAdmin):
+    list_display = ['rc',
+                    'rc_b',
+                    'dept',
+                    'p',
+                    'rc_cdate',
+                    'indate',
+                    'leavedate',
+                    'rc_fdate',
+                    'rc_fmoney',
+                    'rc_bfmoney',
+                    'rc_sdate',
+                    'rc_smoney',
+                    'rc_bsmoney',
                     'rc_tdate',
-                    'rc_tmoney', 'rc_btmoney', 'rc_4date', 'rc_4money', 'rc_b4money']
-    list_filter = ['rc__emp_name', 'rc_b__emp_is_work']
-    raw_id_fields = ['rc', 'rc_b']
+                    'rc_tmoney',
+                    'rc_btmoney',
+                    'rc_4date',
+                    'rc_4money',
+                    'rc_b4money']
+    list_filter = ['rc__emp_name',
+                   'rc_b__emp_is_work']
+    raw_id_fields = ['rc',
+                     'rc_b']
+
+    # 重写显示的数据内容，可根据不同登录用户，显示不同基地的人员信息。
+    def get_queryset(self, request):
+        qs = super(RecordAdmin, self).get_queryset(request)
+        if str(request.user) != 'saduck':
+            return qs.filter(creater=str(request.user))
+        else:
+            return qs
+
     # 添加按钮
-    actions = ['download']
-
-    def rc_cdates(self, obj):
-        return obj.rc_cdate
-        # return format_html('<span style="color:blue">{}</span>', obj.rc_cdate)
-
-    rc_cdates.short_description = '创建日期'
+    actions = ['download',
+               'calc']
 
     def dept(self, obj):
         # return format_html('<span style="width:5px">{}</span>', obj.rc_b.dept)
@@ -84,25 +126,43 @@ class RecordAdmin(admin.ModelAdmin):
     def leavedate(self, obj):
         return obj.rc_b.emp_out_date
 
-    leavedate.short_description = "离职日期"
+    leavedate.short_description = "被推荐人离职日期"
 
-    def reward(self, obj):
-        return obj.rc_b.r
+    def indate(self, obj):
+        return obj.rc_b.emp_in_date
 
-    reward.short_description = "被推荐人奖励政策"
+    indate.short_description = "被推荐人入职日期"
 
     def download(self, request, queryset):
         wb = Workbook()
         ws = wb.active
-        row1 = ['推荐人', '被推荐人', '奖励政策', '被推荐人部门', '创建日期', '入职日期', '离职日期', '第一次奖励日期', '第一次奖励金额', '被推荐人第一次奖励金额', '第二次奖励日期',
+        row1 = ['推荐人',
+                '被推荐人',
+                '奖励政策',
+                '被推荐人部门',
+                '创建日期',
+                '入职日期',
+                '离职日期',
+                '第一次奖励日期',
+                '第一次奖励金额',
+                '被推荐人第一次奖励金额',
+                '第二次奖励日期',
                 '第二次奖励金额',
-                '被推荐人第二次奖励金额', '第三次奖励日期', '第三次奖励金额', '被推荐人第三次奖励金额', '第四次奖励日期', '第四次奖励金额', '被推荐人第四次奖励金额']
+                '被推荐人第二次奖励金额',
+                '第三次奖励日期',
+                '第三次奖励金额',
+                '被推荐人第三次奖励金额',
+                '第四次奖励日期',
+                '第四次奖励金额',
+                '被推荐人第四次奖励金额',
+                '已发放金额合计',
+                '未发放金额合计']
         ws.append(row1)
         for datas in queryset:
             row2 = [
                 str(datas.rc) if str(datas.rc) != "None" else "",
                 str(datas.rc_b) if str(datas.rc_b) != "None" else "",
-                str(datas.rc_b.r) if str(datas.rc_b.r) != "None" else "",
+                str(datas.p) if str(datas.p) != "None" else "",
                 str(datas.rc_b.dept) if str(datas.rc_b.dept) != "None" else "",
                 str(datas.rc_cdate) if str(datas.rc_cdate) != "None" else "",
                 str(datas.rc_b.emp_in_date) if str(datas.rc_b.emp_in_date) != "None" else "",
@@ -118,7 +178,9 @@ class RecordAdmin(admin.ModelAdmin):
                 str(datas.rc_btmoney) if str(datas.rc_btmoney) != "None" else "",
                 str(datas.rc_4date) if str(datas.rc_4date) != "None" else "",
                 str(datas.rc_4money) if str(datas.rc_4money) != "None" else "",
-                str(datas.rc_b4money) if str(datas.rc_b4money) != "None" else ""
+                str(datas.rc_b4money) if str(datas.rc_b4money) != "None" else "",
+                str(datas.rc_issued) if str(datas.rc_issued) != "None" else "",
+                str(datas.rc_notissued) if str(datas.rc_notissued) != "None" else "",
             ]
             ws.append(row2)
         wb.save('static/data.xlsx')
@@ -130,13 +192,11 @@ class RecordAdmin(admin.ModelAdmin):
         return response
 
     # 显示的文本，与django admin一致
-    download.short_description = '导出数据'
+    download.short_description = '下载数据'
     # icon，参考element-ui icon与https://fontawesome.com
     # custom_button.icon = 'fas fa-audio-description'
-
     # 指定element-ui的按钮类型，参考https://element.eleme.cn/#/zh-CN/component/button
-    download.type = 'primary'
-
+    download.type = 'success'
     # 给按钮追加自定义的颜色
     # custom_button.style = 'color:black;'
 
@@ -154,10 +214,10 @@ class RecordAdmin(admin.ModelAdmin):
         :param change:暂时不知道有什么用
         :return:
         '''
-        print(type(obj.id))
         if obj.id is not None:
             Record.objects.filter(id=obj.id).update(rc=obj.rc.emp_id,
                                                     rc_b=obj.rc_b.emp_id,
+                                                    p=obj.p,
                                                     rc_fdate=obj.rc_fdate,
                                                     rc_fmoney=obj.rc_fmoney,
                                                     rc_sdate=obj.rc_sdate,
@@ -176,6 +236,7 @@ class RecordAdmin(admin.ModelAdmin):
             # 根据今天日期，计算后续日期
             Record.objects.create(rc=obj.rc,
                                   rc_b=obj.rc_b,
+                                  p=obj.p,
                                   rc_cdate=obj.rc_cdate,
                                   rc_fdate=obj.rc_fdate,
                                   rc_fmoney=obj.rc_fmoney,
@@ -188,12 +249,30 @@ class RecordAdmin(admin.ModelAdmin):
                                   rc_bfmoney=obj.rc_bfmoney,
                                   rc_bsmoney=obj.rc_bsmoney,
                                   rc_btmoney=obj.rc_btmoney,
-                                  rc_b4money=obj.rc_b4money
+                                  rc_b4money=obj.rc_b4money,
+                                  creater=request.user
                                   )
 
+    # 新增计算按钮，手动计算金额发放情况。
+    # 遍历根据入职日期、离职日期、奖金详情，计算当前已发放的月份和金额，并计算已发放合计、未发放合计。
+    def calc(self, request, queryset):
+        for data in queryset:
+            print(data.rc)
 
-class RewardAdmin(admin.ModelAdmin):
-    list_display = ['re_bdate', 're_edate', 're_money', 're_bmoney', 're_times', 're_desc']
+    calc.short_description = '计算金额发放'
+    calc.type = 'primary'
+
+
+class RewardAdmin(ImportExportModelAdmin):
+    list_display = ['re_bdate',
+                    're_edate',
+                    're_money',
+                    're_bmoney',
+                    're_time1',
+                    're_time2',
+                    're_time3',
+                    're_time4',
+                    're_desc']
 
 
 admin.site.site_header = '润阳人事推荐奖励系统'

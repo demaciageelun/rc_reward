@@ -25,13 +25,13 @@ SECRET_KEY = 'pq%b(^*2%f)1q^n25po2+n4sep3u46#p69f4j5fz1o$q6q6lc5'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-DATE_FORMAT = 'Y-m-d'
 ALLOWED_HOSTS = ['*']
 
 # Application definition
 
 INSTALLED_APPS = [
     'simpleui',
+    "import_export",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -45,7 +45,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -129,3 +129,4 @@ USE_L10N = False
 DATETIME_FORMAT = 'Y/m/d H:i:s'
 
 DATE_FORMAT = 'Y/m/d'
+# APPEND_SLASH=False

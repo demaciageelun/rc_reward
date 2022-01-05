@@ -15,13 +15,14 @@ class Position(models.Model):
     class Meta:
         managed = False
         db_table = 'position'
-        verbose_name = '岗位列表'
+        verbose_name_plural = '岗位列表'
 
 
 # 部门表
 class Dept(models.Model):
     dept_id = models.CharField(blank=True, null=True, max_length=255, verbose_name='部门id')
     dept_name = models.CharField(max_length=255, blank=True, null=True, verbose_name='部门名称')
+    dept_base = models.CharField(max_length=255, blank=True, null=True, verbose_name='基地名称')
 
     def __str__(self):
         return str(self.dept_name)
@@ -29,23 +30,12 @@ class Dept(models.Model):
     class Meta:
         managed = False
         db_table = 'dept'
-        verbose_name = '部门列表'
+        verbose_name_plural = '部门列表'
 
 
 is_work_choice = (
     (1, '在职'),
     (2, '离职'),
-)
-base_choice = (
-    (1, '建湖基地'),
-    (2, '宁夏润阳'),
-    (3, '润宝电力'),
-    (4, '润阳世纪'),
-    (5, '润阳泰国'),
-    (6, '润阳新能源'),
-    (7, '泰国一厂'),
-    (8, '盐城基地'),
-    (9, '总部')
 )
 
 
@@ -55,12 +45,10 @@ class Emp(models.Model):
     emp_name = models.CharField(max_length=255, blank=True, null=True, verbose_name='员工姓名')
     dept = models.ForeignKey('Dept', models.DO_NOTHING, verbose_name="部门")
     p = models.ForeignKey('Position', models.DO_NOTHING, verbose_name="岗位")
-    r = models.ForeignKey('Reward', models.DO_NOTHING, blank=True, null=True, verbose_name="被推荐人奖励政策")
     emp_in_date = models.DateField(blank=True, null=True, verbose_name="入职日期")
     emp_out_date = models.DateField(blank=True, null=True, verbose_name="离职日期")
     emp_is_work = models.IntegerField(blank=True, null=True, verbose_name='是否在职', choices=is_work_choice)
     emp_rank = models.CharField(max_length=255, blank=True, null=True, verbose_name='职级')
-    emp_base = models.IntegerField(blank=True, null=True, verbose_name='基地', choices=base_choice)
 
     def __str__(self):
         return str(self.emp_name)
@@ -68,15 +56,15 @@ class Emp(models.Model):
     class Meta:
         managed = False
         db_table = 'emp'
-        verbose_name = '员工列表'
+        verbose_name_plural = '员工列表'
 
 
-# 奖金发放记录表
+# 奖金发放记录表  隔月发放，例如1月入职的，到3月15日发放第一次奖金
 class Record(models.Model):
     rc = models.ForeignKey('Emp', models.DO_NOTHING, verbose_name="推荐人", related_name='rc')
     rc_b = models.ForeignKey('Emp', models.DO_NOTHING, verbose_name="被推荐人", related_name='rc_b')
     rc_cdate = models.DateField(blank=True, null=True, verbose_name="创建日期")
-    # p = models.ForeignKey('Reward', models.DO_NOTHING, verbose_name="奖金类型")
+    p = models.ForeignKey('Reward', models.DO_NOTHING, verbose_name="奖金类型")
     rc_fdate = models.DateField(blank=True, null=True, verbose_name="日期1")
     rc_fmoney = models.FloatField(blank=True, null=True, verbose_name="金额1")
     rc_sdate = models.DateField(blank=True, null=True, verbose_name="日期2")
@@ -89,20 +77,14 @@ class Record(models.Model):
     rc_bsmoney = models.FloatField(blank=True, null=True, verbose_name="被推荐人金额2")
     rc_btmoney = models.FloatField(blank=True, null=True, verbose_name="被推荐人金额3")
     rc_b4money = models.FloatField(blank=True, null=True, verbose_name="被推荐人金额4")
-
-    # def pp(self):
-    #     if len(str(self.p)) > 10:
-    #         return '{}···'.format(str(self.p)[0:10])
-    #     else:
-    #         return str(self.p)
-    #
-    # pp.allow_tags = True
-    # pp.short_description = "奖金类型"
+    creater = models.CharField(max_length=255, blank=True, null=True, verbose_name='创建人')
+    rc_issued = models.FloatField(blank=True, null=True, verbose_name="已发放金额合计")
+    rc_notissued = models.FloatField(blank=True, null=True, verbose_name="未发放金额合计")
 
     class Meta:
         managed = False
         db_table = 'record'
-        verbose_name = '奖金发放记录表'
+        verbose_name_plural = '奖金发放记录表'
 
 
 # 奖金类型表
@@ -111,7 +93,10 @@ class Reward(models.Model):
     re_edate = models.DateField(blank=True, null=True, verbose_name="失效日期")
     re_money = models.FloatField(blank=True, null=True, verbose_name="推荐人奖金金额")
     re_bmoney = models.FloatField(blank=True, null=True, verbose_name="被推荐人奖金金额")
-    re_times = models.IntegerField(blank=True, null=True, verbose_name='分期发放次数')
+    re_time1 = models.IntegerField(blank=True, null=True, verbose_name='第一次发放月（入职后）')
+    re_time2 = models.IntegerField(blank=True, null=True, verbose_name='第二次发放月（入职后）')
+    re_time3 = models.IntegerField(blank=True, null=True, verbose_name='第三次发放月（入职后）')
+    re_time4 = models.IntegerField(blank=True, null=True, verbose_name='第四次发放月（入职后）')
     re_desc = models.CharField(max_length=255, blank=True, null=True, verbose_name='规则描述')
 
     def __str__(self):
@@ -119,11 +104,10 @@ class Reward(models.Model):
             bmoney = "0"
         else:
             bmoney = self.re_bmoney
-        return str(self.re_bdate) + "到" + str(self.re_edate) + ",分" + str(
-            self.re_times) + "期发，推荐人奖金为" + str(
+        return str(self.re_bdate) + "到" + str(self.re_edate) + ",推荐人奖金为" + str(
             self.re_money) + ",被推荐人奖金为" + str(bmoney)
 
     class Meta:
         managed = False
         db_table = 'reward'
-        verbose_name = '奖金标准'
+        verbose_name_plural = '奖金标准'
