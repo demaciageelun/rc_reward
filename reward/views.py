@@ -3,9 +3,12 @@ from base64 import decode
 from urllib import parse
 
 import requests
+from django.forms import model_to_dict
 from django.http import HttpResponse
 from django.shortcuts import render
-from .models import Dept, Position, Emp
+
+from .models import Dept, Position, Emp, InterviewAccount,JobLevel
+from django.core import serializers
 
 
 # from functions import insertdata
@@ -16,7 +19,7 @@ def getdatafrominter(request):
     url = "http://127.0.0.1:36002/mssqlinterface"
     # d = {"table": "T_HR_Department", "param": "id,DepartmentCode,DepartmentName,D_glgs"}
     # d = {"table": "t_hr_post", "param": "id,PostCode,PostName,IfUse"}
-    # d = {"table": "t_hr_employee", "param": "Code,Name,DeptID,PostID,HireDate,DimissionDate,EmployeeStatusID"}
+    # d = {"table": "t_hr_employee", "param": "Code,Name,DeptID,PostID,_jtrzrq,DimissionDate,EmployeeStatusID"}
     # 从定时任务中获取任务，从接口取数据
     d = json.loads(request.body.decode('utf8'))
     print(d)
@@ -62,6 +65,11 @@ def getdatafrominter(request):
             except Exception as e:
                 print(e)
                 p = Position.objects.get(id=1)
+            try:
+                level = JobLevel.objects.get(id=datas[9])
+            except Exception as e:
+                print(e)
+                level = JobLevel.objects.get(id=1)
             Emp.objects.update_or_create(
                 defaults={
                     'emp_id': datas[0],
@@ -70,8 +78,19 @@ def getdatafrominter(request):
                     'p': p,
                     'emp_in_date': datas[4],
                     'emp_out_date': datas[5],
-                    'emp_is_work': datas[6]
+                    'emp_is_work': datas[6],
+                    'emp_source': datas[7],
+                    'emp_dlidl': datas[8],
+                    'level': level
                 },
                 emp_id=datas[0]
             )
     return HttpResponse({"success": "true"})
+
+
+def getLeaveDate(request):
+    # return_data = InterviewAccount.objects.raw("select id, emp_id,reason,content from interview_account GROUP BY emp_id")
+    return_data = InterviewAccount.objects.values('emp_id', 'reason', 'content')
+    print(return_data)
+    data = serializers.serialize("json", InterviewAccount.objects.all())
+    return HttpResponse(data)

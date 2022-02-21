@@ -9,7 +9,6 @@ https://docs.djangoproject.com/en/2.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.1/ref/settings/
 """
-
 import os
 
 SIMPLEUI_DEFAULT_THEME = 'purple.css'
@@ -38,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'reward.apps.RewardConfig'
+    'reward.apps.RewardConfig',
 ]
 
 MIDDLEWARE = [
@@ -115,18 +114,27 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = True
+USE_TZ = False
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
-
+APPEND_SLASH = False
 STATIC_URL = '/static/'
+# STATIC_ROOT = os.path.join(BASE_DIR, "static")
+# 自加静态目录配置
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static')
+]
+STATIC_ROOT = os.path.join(BASE_DIR, '/static/')
 # SIMPLEUI_LOGO = 'index.png'
 SIMPLEUI_HOME_INFO = False
 SIMPLEUI_ANALYSIS = False
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10240
+# 导入导出
+IMPORT_EXPORT_USE_TRANSACTIONS = True
+
 USE_L10N = False
 
 DATETIME_FORMAT = 'Y/m/d H:i:s'
 
 DATE_FORMAT = 'Y/m/d'
-# APPEND_SLASH=False
